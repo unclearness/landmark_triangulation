@@ -10,6 +10,8 @@ fa = face_alignment.FaceAlignment(
 #fnames = [x for x in os.listdir("./data/") if x.endswith('png')]
 fnames = [str(i).zfill(2) + ".png" for i in range(0, 22)]
 
+os.makedirs("./data/detected", exist_ok=True)
+
 preds_list = []
 for fname in fnames:
     input = io.imread('./data/' + fname)
@@ -30,10 +32,10 @@ for fname in fnames:
                     color=(0, 0, 0),
                     thickness=2)
 
-    cv2.imwrite('./data/detected' + fname, input)
+    cv2.imwrite('./data/detected/detected' + fname, input)
     preds_list.append(preds)
 
-with open('./data/detected.txt', 'w') as f:
+with open('./data/detected/detected.txt', 'w') as f:
     for preds in preds_list:
         if preds is None:
             f.write("null\n")

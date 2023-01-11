@@ -191,48 +191,55 @@ def loadLandmarks(path, lmk_num=68):
     return np.array(lmk2ds), np.array(valid_mask, dtype=bool)
 
 
-c2w_Rs, c2w_ts = loadTum("./data/tum.txt")
-R_gl2cv = np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]])
-c2w_Rs = np.array([m @ R_gl2cv for m in c2w_Rs])
-w, h, fx, fy, cx, cy = loadIntrin("./data/intrin.txt")
-VIEW_NUM = c2w_Rs.shape[0]
-Ks = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]]
-              )[None, ].repeat(VIEW_NUM, axis=0)
-w2c_Rs = c2w_Rs.transpose((0, 2, 1))
-w2c_ts = - np.matmul(w2c_Rs, c2w_ts[..., None]).squeeze(-1)
+if __name__ == '__main__':
+    c2w_Rs, c2w_ts = loadTum("./data/tum.txt")
+    R_gl2cv = np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]])
+    c2w_Rs = np.array([m @ R_gl2cv for m in c2w_Rs])
+    w, h, fx, fy, cx, cy = loadIntrin("./data/intrin.txt")
+    VIEW_NUM = c2w_Rs.shape[0]
+    Ks = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]]
+                  )[None, ].repeat(VIEW_NUM, axis=0)
+    w2c_Rs = c2w_Rs.transpose((0, 2, 1))
+    w2c_ts = - np.matmul(w2c_Rs, c2w_ts[..., None]).squeeze(-1)
 
-lmk2ds, valid_mask = loadLandmarks("./data/detected.txt")
+    lmk2ds, valid_mask = loadLandmarks("./data/detected/detected.txt")
 
-lmk2ds, w2c_Rs, w2c_ts, Ks = lmk2ds[valid_mask], w2c_Rs[valid_mask],\
-    w2c_ts[valid_mask], Ks[valid_mask]
+    lmk2ds, w2c_Rs, w2c_ts, Ks = lmk2ds[valid_mask], w2c_Rs[valid_mask],\
+        w2c_ts[valid_mask], Ks[valid_mask]
 
-points3d = triangulateLandmarkLeastSquares(lmk2ds, w2c_Rs, w2c_ts, Ks)
-projected, rprj_err, rprj_err_view = evalReprojectionError(
-    points3d, lmk2ds, w2c_Rs, w2c_ts, Ks)
-print('All views')
-print('Reprojection error: ', rprj_err_view)
-obj_io.saveObjSimple("./data/triangulated_all.obj", points3d, [])
+    os.makedirs("./data/triangulate", exist_ok=True)
 
-detected_imgs = [x for x in os.listdir(
-    "./data/") if x.startswith('detected') and x.endswith('png')]
-for i, detected_img in enumerate(detected_imgs):
-    img = cv2.imread("./data/"+detected_img)
-    for p in projected[i]:
-        cv2.circle(img, (int(p[0]), int(p[1])), 3, (0, 255, 0))
-    cv2.imwrite('./data/rprj_all_' + detected_img, img)
+    points3d = triangulateLandmarkLeastSquares(lmk2ds, w2c_Rs, w2c_ts, Ks)
+    projected, rprj_err, rprj_err_view = evalReprojectionError(
+        points3d, lmk2ds, w2c_Rs, w2c_ts, Ks)
+    print('All views')
+    print('Reprojection error: ', rprj_err_view)
+    print()
+    obj_io.saveObjSimple(
+        "./data/triangulate/triangulated_all.obj", points3d, [])
 
-inlier_th = h * 0.02
-best_inlier_mask, best_rprj_view, best_points, best_projected, best_hypothesis = triangulateLandmarkRANSAC(
-    lmk2ds, w2c_Rs, w2c_ts, Ks, inlier_th)
-print('RANSAC inlier views', np.where(best_inlier_mask)[0])
-print('Hypothesis', best_hypothesis)
-print('Reprojection error: ', best_rprj_view)
-obj_io.saveObjSimple("./data/triangulated_ransac.obj", best_points, [])
+    detected_img_names = [x for x in os.listdir(
+        "./data/detected") if x.startswith('detected') and x.endswith('png')]
 
-detected_imgs = [x for x in os.listdir(
-    "./data/") if x.startswith('detected') and x.endswith('png')]
-for i, detected_img in enumerate(detected_imgs):
-    img = cv2.imread("./data/"+detected_img)
-    for p in best_projected[i]:
-        cv2.circle(img, (int(p[0]), int(p[1])), 3, (0, 255, 0))
-    cv2.imwrite('./data/rprj_ransac_' + detected_img, img)
+    for i, detected_img_name in enumerate(detected_img_names):
+        img = cv2.imread("./data/detected/"+detected_img_name)
+        for p in projected[i]:
+            cv2.circle(img, (int(p[0]), int(p[1])), 3, (0, 255, 0))
+        cv2.imwrite('./data/triangulate/rprj_all_' + detected_img_name, img)
+
+    inlier_th = h * 0.02
+    best_inlier_mask, best_rprj_view, best_points, best_projected, best_hypothesis =\
+        triangulateLandmarkRANSAC(
+            lmk2ds, w2c_Rs, w2c_ts, Ks, inlier_th)
+    print('RANSAC inlier views', np.where(best_inlier_mask)[0])
+    print('Hypothesis', best_hypothesis)
+    print('Reprojection error: ', best_rprj_view)
+    print()
+    obj_io.saveObjSimple(
+        "./data/triangulate/triangulated_ransac.obj", best_points, [])
+
+    for i, detected_img_name in enumerate(detected_img_names):
+        img = cv2.imread("./data/detected/"+detected_img_name)
+        for p in best_projected[i]:
+            cv2.circle(img, (int(p[0]), int(p[1])), 3, (0, 255, 0))
+        cv2.imwrite('./data/triangulate/rprj_ransac_' + detected_img_name, img)
