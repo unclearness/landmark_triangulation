@@ -6,7 +6,7 @@
 - Output
   - 3D positions corresponding to the 2D points
 
-The main algorithm is included in `triangulation.py`.
+The main algorithms are included in `triangulation.py`.
 
 ## Try it
 
@@ -31,7 +31,7 @@ All resulted files are included. The files generated on your environment may be 
 
 Detected landmarks by deep neural network may not have 3D consistency especially for side faces.
 <span style="color: green; ">Least squares (green points)</span> is vulnerable to such erroneous inputs. Mouse and chin points are collapsed.
-<span style="color: red; ">RANSAC (red points)</span> can triagulate face like points by removing outlier views. Unfortunately, chin points are still far from ground truth surface because of inaccuracy of the inputs.
+<span style="color: red; ">RANSAC (red points)</span> can triagulate more face-like points by removing outlier views. Unfortunately, chin points are still far from ground truth surface because of inaccuracy of the inputs.
 
 |              Results with ground truth mesh              |                      Results only                      |
 | :------------------------------------------------------: | :----------------------------------------------------: |
